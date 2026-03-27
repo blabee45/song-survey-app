@@ -9,7 +9,7 @@ type Song = {
   title: string;
 };
 
-export default function Stage3Page() {
+export default function Stage3Client() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
 
@@ -21,9 +21,12 @@ export default function Stage3Page() {
 
   useEffect(() => {
     const fetchSongs = async () => {
-      if (!sessionId) return;
+      if (!sessionId) {
+        setMessage("세션 ID 없음");
+        setLoading(false);
+        return;
+      }
 
-      // 1️⃣ 이전 단계(5개)에서 선택한 song_id 가져오기
       const { data: selections, error: selError } = await supabase
         .from("survey_selections")
         .select("song_id")
@@ -38,9 +41,14 @@ export default function Stage3Page() {
 
       const songIds = selections?.map((s) => s.song_id) || [];
 
-      // 2️⃣ 해당 song_id들의 실제 제목 가져오기
+      if (songIds.length === 0) {
+        setSongs([]);
+        setLoading(false);
+        return;
+      }
+
       const { data: songsData, error: songError } = await supabase
-        .from("Seventeen songs") // ← 너 노래 테이블 이름
+        .from("Seventeen songs")
         .select("id, title")
         .in("id", songIds);
 
@@ -85,10 +93,10 @@ export default function Stage3Page() {
     setMessage("");
 
     await supabase
-    .from("survey_selections")
-    .delete()
-    .eq("session_id", sessionId)
-    .eq("stage", "3");
+      .from("survey_selections")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("stage", "3");
 
     const rows = selected.map((songId) => ({
       session_id: sessionId,
@@ -128,10 +136,14 @@ export default function Stage3Page() {
         style={{
           marginBottom: "20px",
           padding: "10px 16px",
-backgroundColor:
-      selected.length === 50 && !saving ? "#444" : "#ccc",
-    color:
-      selected.length === 50 && !saving ? "#fff" : "#666",
+          border: "none",
+          borderRadius: "8px",
+          fontWeight: "bold",
+          cursor: saving || selected.length !== 3 ? "not-allowed" : "pointer",
+          backgroundColor:
+            selected.length === 3 && !saving ? "#444" : "#ccc",
+          color:
+            selected.length === 3 && !saving ? "#fff" : "#666",
         }}
       >
         {saving ? "저장 중..." : "3곡 저장하기"}
